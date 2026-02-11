@@ -23,98 +23,84 @@ public class SemaAssignTypes implements ASTVisitor {
     }
 
     @Override
-    public ASTVisitor visit(AST.Program program, boolean enter) {
-        if (enter) {
-            currentScope = program.scope;
+    public ASTVisitor enter(AST.Program program) {
+        currentScope = program.scope;
+        return this;
+    }
+    @Override
+    public void exit(AST.Program program) {
+        currentScope = currentScope.parent;
+    }
+
+    @Override
+    public ASTVisitor enter(AST.FuncDecl funcDecl) {
+        currentScope = funcDecl.scope;
+        currentFuncDecl = funcDecl;
+        return this;
+    }
+    @Override
+    public void exit(AST.FuncDecl funcDecl) {
+        currentScope = currentScope.parent;
+        currentFuncDecl = null;
+    }
+
+    @Override
+    public ASTVisitor enter(AST.StructDecl structDecl) {
+        currentScope = structDecl.scope;
+        currentStructDecl = structDecl;
+        return this;
+    }
+    @Override
+    public void exit(AST.StructDecl structDecl) {
+        currentScope = currentScope.parent;
+        currentStructDecl = null;
+    }
+
+    @Override
+    public void exit(AST.BinaryExpr binaryExpr) {
+        if (binaryExpr.type != null)
+            return;
+        validType(binaryExpr.expr1.type, true);
+        validType(binaryExpr.expr2.type, true);
+        if (binaryExpr.expr1.type instanceof EZType.EZTypeInteger &&
+            binaryExpr.expr2.type instanceof EZType.EZTypeInteger) {
+            // booleans are int too
+            binaryExpr.type = typeDictionary.INT;
+        }
+        else if (((binaryExpr.expr1.type instanceof EZType.EZTypeNull &&
+                 binaryExpr.expr2.type instanceof EZType.EZTypeNullable) ||
+                (binaryExpr.expr1.type instanceof EZType.EZTypeNullable &&
+                 binaryExpr.expr2.type instanceof EZType.EZTypeNull) ||
+                (binaryExpr.expr1.type instanceof EZType.EZTypeNull &&
+                 binaryExpr.expr2.type instanceof EZType.EZTypeNull)) &&
+                (binaryExpr.op.str.equals("==") || binaryExpr.op.str.equals("!="))) {
+            binaryExpr.type = typeDictionary.INT;
         }
         else {
-            currentScope = currentScope.parent;
+            throw new CompilerException("Binary operator " + binaryExpr.op + " not supported for operands");
         }
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.FuncDecl funcDecl, boolean enter) {
-        if (enter) {
-            currentScope = funcDecl.scope;
-            currentFuncDecl = funcDecl;
-        }
-        else {
-            currentScope = currentScope.parent;
-            currentFuncDecl = null;
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.StructDecl structDecl, boolean enter) {
-        if (enter) {
-            currentScope = structDecl.scope;
-            currentStructDecl = structDecl;
-        }
-        else {
-            currentScope = currentScope.parent;
-            currentStructDecl = null;
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.VarDecl varDecl, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.BinaryExpr binaryExpr, boolean enter) {
-        if (!enter) {
-            if (binaryExpr.type != null)
-                return this;
-            validType(binaryExpr.expr1.type, true);
-            validType(binaryExpr.expr2.type, true);
-            if (binaryExpr.expr1.type instanceof EZType.EZTypeInteger &&
-                binaryExpr.expr2.type instanceof EZType.EZTypeInteger) {
-                // booleans are int too
-                binaryExpr.type = typeDictionary.INT;
-            }
-            else if (((binaryExpr.expr1.type instanceof EZType.EZTypeNull &&
-                     binaryExpr.expr2.type instanceof EZType.EZTypeNullable) ||
-                    (binaryExpr.expr1.type instanceof EZType.EZTypeNullable &&
-                     binaryExpr.expr2.type instanceof EZType.EZTypeNull) ||
-                    (binaryExpr.expr1.type instanceof EZType.EZTypeNull &&
-                     binaryExpr.expr2.type instanceof EZType.EZTypeNull)) &&
-                    (binaryExpr.op.str.equals("==") || binaryExpr.op.str.equals("!="))) {
-                binaryExpr.type = typeDictionary.INT;
-            }
-            else {
-                throw new CompilerException("Binary operator " + binaryExpr.op + " not supported for operands");
-            }
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.UnaryExpr unaryExpr, boolean enter) {
-        if (enter || unaryExpr.type != null) {
-            return this;
+    public void exit(AST.UnaryExpr unaryExpr) {
+        if (unaryExpr.type != null) {
+            return;
         }
         validType(unaryExpr.expr.type, false);
-        if (unaryExpr.expr.type instanceof EZType.EZTypeInteger ti) {
+        if (unaryExpr.expr.type instanceof EZType.EZTypeInteger) {
             unaryExpr.type = unaryExpr.expr.type;
         }
         else {
             throw new CompilerException("Unary operator " + unaryExpr.op + " not supported for operand");
         }
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.GetFieldExpr fieldExpr, boolean enter) {
-        if (enter)
-            return this;
+    public void exit(AST.GetFieldExpr fieldExpr) {
         if (fieldExpr.type != null)
-            return this;
+            return;
         validType(fieldExpr.object.type, false);
-        EZType.EZTypeStruct structType = null;
+        EZType.EZTypeStruct structType;
         if (fieldExpr.object.type instanceof EZType.EZTypeStruct ts) {
             structType = ts;
         }
@@ -128,17 +114,14 @@ public class SemaAssignTypes implements ASTVisitor {
         if (fieldType == null)
             throw new CompilerException("Struct " + structType + " does not have field named " + fieldExpr.fieldName);
         fieldExpr.type = fieldType;
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.SetFieldExpr fieldExpr, boolean enter) {
-        if (enter)
-            return this;
+    public void exit(AST.SetFieldExpr fieldExpr) {
         if (fieldExpr.type != null)
-            return this;
+            return;
         validType(fieldExpr.object.type, true);
-        EZType.EZTypeStruct structType = null;
+        EZType.EZTypeStruct structType;
         if (fieldExpr.object.type instanceof EZType.EZTypeStruct ts) {
             structType = ts;
         }
@@ -154,7 +137,7 @@ public class SemaAssignTypes implements ASTVisitor {
             else
                 throw new CompilerException("Unexpected array initializer " + fieldExpr.fieldName);
             fieldExpr.type = fieldExpr.value.type;
-            return this;
+            return;
         }
         else
             throw new CompilerException("Unexpected struct type " + fieldExpr.object.type);
@@ -164,130 +147,91 @@ public class SemaAssignTypes implements ASTVisitor {
         validType(fieldExpr.value.type, true);
         checkAssignmentCompatible(fieldType, fieldExpr.value.type);
         fieldExpr.type = fieldType;
-        return this;
     }
 
-
     @Override
-    public ASTVisitor visit(AST.CallExpr callExpr, boolean enter) {
-        if (!enter) {
-            if (callExpr.type != null)
-                return this;
-            validType(callExpr.callee.type, false);
-            if (callExpr.callee.type instanceof EZType.EZTypeFunction f) {
-                callExpr.type = f.returnType;
-            }
-            else
-                throw new CompilerException("Call target must be a function");
+    public void exit(AST.CallExpr callExpr) {
+        if (callExpr.type != null)
+            return;
+        validType(callExpr.callee.type, false);
+        if (callExpr.callee.type instanceof EZType.EZTypeFunction f) {
+            callExpr.type = f.returnType;
         }
-        return this;
+        else
+            throw new CompilerException("Call target must be a function");
     }
 
     @Override
-    public ASTVisitor visit(AST.SimpleTypeExpr simpleTypeExpr, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.NullableSimpleTypeExpr simpleTypeExpr, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ArrayTypeExpr arrayTypeExpr, boolean enter) {
-        return this;
-    }
-
-    public ASTVisitor visit(AST.NullableArrayTypeExpr arrayTypeExpr, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ReturnTypeExpr returnTypeExpr, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.LiteralExpr literalExpr, boolean enter) {
-        if (enter) {
-            if (literalExpr.type != null)
-                return this;
-            if (literalExpr.value.kind == Token.Kind.NUM) {
-                literalExpr.type = typeDictionary.INT;
-            }
-            else if (literalExpr.value.kind == Token.Kind.IDENT
-                     && literalExpr.value.str.equals("null")) {
-                literalExpr.type = typeDictionary.NULL;
-            }
-            else {
-                throw new CompilerException("Unsupported literal " + literalExpr.value);
-            }
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ArrayLoadExpr arrayIndexExpr, boolean enter) {
-        if (!enter) {
-            if (arrayIndexExpr.type != null)
-                return this;
-            validType(arrayIndexExpr.array.type, false);
-            EZType.EZTypeArray arrayType = null;
-            if (arrayIndexExpr.array.type instanceof EZType.EZTypeArray ta) {
-                arrayType = ta;
-            }
-            else if (arrayIndexExpr.array.type instanceof EZType.EZTypeNullable ptr &&
-                    ptr.baseType instanceof EZType.EZTypeArray ta) {
-                arrayType = ta;
-            }
-            else
-                throw new CompilerException("Unexpected array type " + arrayIndexExpr.array.type);
-            if (!(arrayIndexExpr.expr.type instanceof EZType.EZTypeInteger))
-                throw new CompilerException("Array index must be integer type");
-            arrayIndexExpr.type = arrayType.getElementType();
-            validType(arrayIndexExpr.type, false);
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ArrayStoreExpr arrayIndexExpr, boolean enter) {
-        if (!enter) {
-            if (arrayIndexExpr.type != null)
-                return this;
-            validType(arrayIndexExpr.array.type, false);
-            EZType.EZTypeArray arrayType = null;
-            if (arrayIndexExpr.array.type instanceof EZType.EZTypeArray ta) {
-                arrayType = ta;
-            }
-            else if (arrayIndexExpr.array.type instanceof EZType.EZTypeNullable ptr &&
-                    ptr.baseType instanceof EZType.EZTypeArray ta) {
-                arrayType = ta;
-            }
-            else
-                throw new CompilerException("Unexpected array type " + arrayIndexExpr.array.type);
-            if (!(arrayIndexExpr.expr.type instanceof EZType.EZTypeInteger))
-                throw new CompilerException("Array index must be integer type");
-            arrayIndexExpr.type = arrayType.getElementType();
-            validType(arrayIndexExpr.type, false);
-            validType(arrayIndexExpr.value.type, true);
-            checkAssignmentCompatible(arrayIndexExpr.type, arrayIndexExpr.value.type);
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.NewExpr newExpr, boolean enter) {
-        if (enter)
+    public ASTVisitor enter(AST.LiteralExpr literalExpr) {
+        if (literalExpr.type != null)
             return this;
+        if (literalExpr.value.kind == Token.Kind.NUM) {
+            literalExpr.type = typeDictionary.INT;
+        }
+        else if (literalExpr.value.kind == Token.Kind.IDENT
+                 && literalExpr.value.str.equals("null")) {
+            literalExpr.type = typeDictionary.NULL;
+        }
+        else {
+            throw new CompilerException("Unsupported literal " + literalExpr.value);
+        }
+        return this;
+    }
+
+    @Override
+    public void exit(AST.ArrayLoadExpr arrayIndexExpr) {
+        if (arrayIndexExpr.type != null)
+            return;
+        validType(arrayIndexExpr.array.type, false);
+        EZType.EZTypeArray arrayType;
+        if (arrayIndexExpr.array.type instanceof EZType.EZTypeArray ta) {
+            arrayType = ta;
+        }
+        else if (arrayIndexExpr.array.type instanceof EZType.EZTypeNullable ptr &&
+                ptr.baseType instanceof EZType.EZTypeArray ta) {
+            arrayType = ta;
+        }
+        else
+            throw new CompilerException("Unexpected array type " + arrayIndexExpr.array.type);
+        if (!(arrayIndexExpr.expr.type instanceof EZType.EZTypeInteger))
+            throw new CompilerException("Array index must be integer type");
+        arrayIndexExpr.type = arrayType.getElementType();
+        validType(arrayIndexExpr.type, false);
+    }
+
+    @Override
+    public void exit(AST.ArrayStoreExpr arrayIndexExpr) {
+        if (arrayIndexExpr.type != null)
+            return;
+        validType(arrayIndexExpr.array.type, false);
+        EZType.EZTypeArray arrayType;
+        if (arrayIndexExpr.array.type instanceof EZType.EZTypeArray ta) {
+            arrayType = ta;
+        }
+        else if (arrayIndexExpr.array.type instanceof EZType.EZTypeNullable ptr &&
+                ptr.baseType instanceof EZType.EZTypeArray ta) {
+            arrayType = ta;
+        }
+        else
+            throw new CompilerException("Unexpected array type " + arrayIndexExpr.array.type);
+        if (!(arrayIndexExpr.expr.type instanceof EZType.EZTypeInteger))
+            throw new CompilerException("Array index must be integer type");
+        arrayIndexExpr.type = arrayType.getElementType();
+        validType(arrayIndexExpr.type, false);
+        validType(arrayIndexExpr.value.type, true);
+        checkAssignmentCompatible(arrayIndexExpr.type, arrayIndexExpr.value.type);
+    }
+
+    @Override
+    public void exit(AST.NewExpr newExpr) {
         if (newExpr.type != null)
-            return this;
+            return;
         if (newExpr.typeExpr.type == null)
             throw new CompilerException("Unresolved type in new expression");
         validType(newExpr.typeExpr.type, false);
         if (newExpr.typeExpr.type instanceof EZType.EZTypeNullable)
             throw new CompilerException("new cannot be used to create a Nullable type");
-        if (newExpr.typeExpr.type instanceof EZType.EZTypeStruct typeStruct) {
+        if (newExpr.typeExpr.type instanceof EZType.EZTypeStruct) {
             newExpr.type = newExpr.typeExpr.type;
         }
         else if (newExpr.typeExpr.type instanceof EZType.EZTypeArray arrayType) {
@@ -303,17 +247,14 @@ public class SemaAssignTypes implements ASTVisitor {
         }
         else
             throw new CompilerException("Unsupported type in new expression");
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.InitExpr initExpr, boolean enter) {
-        if (enter)
-            return this;
+    public void exit(AST.InitExpr initExpr) {
         if (initExpr.newExpr.type == null)
             throw new CompilerException("Unresolved type in new expression");
         if (initExpr.type != null)
-            return this;
+            return;
         validType(initExpr.newExpr.type, false);
         if (initExpr.newExpr.type instanceof EZType.EZTypeNullable)
             throw new CompilerException("new cannot be used to create a Nullable type");
@@ -335,13 +276,10 @@ public class SemaAssignTypes implements ASTVisitor {
         else
             throw new CompilerException("Unsupported type in new expression");
         initExpr.type = initExpr.newExpr.type;
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.NameExpr nameExpr, boolean enter) {
-        if (!enter)
-            return this;
+    public ASTVisitor enter(AST.NameExpr nameExpr) {
         if (nameExpr.type != null)
             return this;
         var symbol = currentScope.lookup(nameExpr.name);
@@ -355,19 +293,7 @@ public class SemaAssignTypes implements ASTVisitor {
     }
 
     @Override
-    public ASTVisitor visit(AST.BreakStmt breakStmt, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ContinueStmt continueStmt, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ReturnStmt returnStmt, boolean enter) {
-        if (enter)
-            return this;
+    public void exit(AST.ReturnStmt returnStmt) {
         EZType.EZTypeFunction functionType = (EZType.EZTypeFunction) currentFuncDecl.symbol.type;
         if (returnStmt.expr != null) {
             validType(returnStmt.expr.type, true);
@@ -376,60 +302,32 @@ public class SemaAssignTypes implements ASTVisitor {
         else if (!(functionType.returnType instanceof EZType.EZTypeVoid)) {
             throw new CompilerException("A return value of type " + functionType.returnType + " is expected");
         }
-        return this;
     }
 
     @Override
-    public ASTVisitor visit(AST.IfElseStmt ifElseStmt, boolean enter) {
-        return this;
+    public void exit(AST.VarStmt varStmt) {
+        validType(varStmt.expr.type, true);
+        var symbol = currentScope.lookup(varStmt.varName);
+        symbol.type = typeDictionary.merge(varStmt.expr.type, symbol.type);
+        if (symbol.type == typeDictionary.NULL)
+            throw new CompilerException("Variable " + varStmt.varName + " cannot be Null type");
     }
 
     @Override
-    public ASTVisitor visit(AST.WhileStmt whileStmt, boolean enter) {
+    public ASTVisitor enter(AST.BlockStmt blockStmt) {
+        currentScope = blockStmt.scope;
         return this;
+    }
+    @Override
+    public void exit(AST.BlockStmt blockStmt) {
+        currentScope = currentScope.parent;
     }
 
     @Override
-    public ASTVisitor visit(AST.VarStmt varStmt, boolean enter) {
-        if (!enter) {
-            validType(varStmt.expr.type, true);
-            var symbol = currentScope.lookup(varStmt.varName);
-            symbol.type = typeDictionary.merge(varStmt.expr.type, symbol.type);
-            if (symbol.type == typeDictionary.NULL)
-                throw new CompilerException("Variable " + varStmt.varName + " cannot be Null type");
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.BlockStmt blockStmt, boolean enter) {
-        if (enter) {
-            currentScope = blockStmt.scope;
-        }
-        else {
-            currentScope = currentScope.parent;
-        }
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.VarDeclStmt varDeclStmt, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.ExprStmt exprStmt, boolean enter) {
-        return this;
-    }
-
-    @Override
-    public ASTVisitor visit(AST.AssignStmt assignStmt, boolean enter) {
-        if (!enter) {
-            validType(assignStmt.nameExpr.type, false);
-            validType(assignStmt.rhs.type, true);
-            checkAssignmentCompatible(assignStmt.nameExpr.type, assignStmt.rhs.type);
-        }
-        return this;
+    public void exit(AST.AssignStmt assignStmt) {
+        validType(assignStmt.nameExpr.type, false);
+        validType(assignStmt.rhs.type, true);
+        checkAssignmentCompatible(assignStmt.nameExpr.type, assignStmt.rhs.type);
     }
 
     public void analyze(AST.Program program) {

@@ -36,13 +36,13 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             for (AST.Decl d : decls) {
                 d.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -74,11 +74,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             typeExpr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -103,13 +103,13 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             for (VarDecl field : fields) {
                 field.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -138,26 +138,23 @@ public abstract class AST {
                 args[i].toStr(sb);
             }
             sb.append(")");
-            if (returnType != null) {
-                sb.append("->");
-                returnType.toStr(sb);
-            }
+            sb.append("->");
+            returnType.toStr(sb);
             sb.append("\n");
             return block.toStr(sb);
         }
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             for (VarDecl arg : args) {
                 arg.accept(visitor);
             }
-            if (returnType != null)
-                returnType.accept(visitor);
+            returnType.accept(visitor);
             block.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -183,10 +180,10 @@ public abstract class AST {
         public String name() { return toStr(new StringBuilder()).toString(); }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -204,10 +201,10 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -227,11 +224,11 @@ public abstract class AST {
         public String name() { return toStr(new StringBuilder()).toString(); }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             elementType.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -250,11 +247,11 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             elementType.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -267,12 +264,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             if (returnType != null)
                 returnType.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
 
         @Override
@@ -294,10 +291,10 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -321,12 +318,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             expr1.accept(visitor);
             expr2.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -346,11 +343,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             expr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -366,10 +363,10 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -391,12 +388,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             array.accept(visitor);
             expr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -419,13 +416,13 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             array.accept(visitor);
             expr.accept(visitor);
             value.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -458,11 +455,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             object.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -482,12 +479,12 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             object.accept(visitor);
             value.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -528,14 +525,14 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             callee.accept(visitor);
             for (AST.Expr expr: args) {
                 expr.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -565,7 +562,7 @@ public abstract class AST {
         }
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             typeExpr.accept(visitor);
@@ -574,7 +571,7 @@ public abstract class AST {
                 if (initValue != null)
                     initValue.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -606,14 +603,14 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             newExpr.accept(visitor);
             for (Expr expr: initExprList) {
                 expr.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -644,14 +641,14 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             condition.accept(visitor);
             ifStmt.accept(visitor);
             if (elseStmt != null)
                 elseStmt.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -672,12 +669,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             condition.accept(visitor);
             stmt.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -693,10 +690,10 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -712,10 +709,10 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -736,12 +733,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             if (expr != null)
                 expr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -763,12 +760,12 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             nameExpr.accept(visitor);
             rhs.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -789,11 +786,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             expr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -809,11 +806,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             expr.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -829,11 +826,11 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             varDecl.accept(visitor);
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 
@@ -855,13 +852,13 @@ public abstract class AST {
 
         @Override
         public void accept(ASTVisitor visitor) {
-            visitor = visitor.visit(this, true);
+            visitor = visitor.enter(this);
             if (visitor == null)
                 return;
             for (Stmt stmt: stmtList) {
                 stmt.accept(visitor);
             }
-            visitor.visit(this, false);
+            visitor.exit(this);
         }
     }
 }
