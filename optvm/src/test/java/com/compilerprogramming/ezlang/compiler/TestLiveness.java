@@ -6,6 +6,8 @@ import com.compilerprogramming.ezlang.types.TypeDictionary;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 public class TestLiveness {
 
     TypeDictionary compileSrc(String src) {
@@ -564,4 +566,162 @@ L3:
     #LIVEOUT = {1}
 """, result.toString());
     }
+
+    // From discussion
+    // https://www.reddit.com/r/Compilers/comments/1qhfbqh/liveness_analysis_correctness/
+    static CompiledFunction buildTestReddit() {
+        TypeDictionary typeDictionary = new TypeDictionary();
+        EZType.EZTypeFunction functionType = new EZType.EZTypeFunction("foo");
+        functionType.setReturnType(typeDictionary.INT);
+        CompiledFunction function = new CompiledFunction(functionType, typeDictionary);
+        RegisterPool regPool = function.registerPool;
+        Register v0_0 = regPool.newReg("v0_0", typeDictionary.INT);
+        Register v0_1 = regPool.newReg("v0_1", typeDictionary.INT);
+        Register v0_2 = regPool.newReg("v0_2", typeDictionary.INT);
+        Register v1_0 = regPool.newReg("v1_0", typeDictionary.INT);
+        Register v1_1 = regPool.newReg("v1_1", typeDictionary.INT);
+        Register v1_2 = regPool.newReg("v1_2", typeDictionary.INT);
+        Register v2_0 = regPool.newReg("v2_0", typeDictionary.INT);
+        Register v2_1 = regPool.newReg("v2_1", typeDictionary.INT);
+        Register v2_2 = regPool.newReg("v2_2", typeDictionary.INT);
+        Register v3_0 = regPool.newReg("v3_0", typeDictionary.INT);
+        Register v4_0 = regPool.newReg("v4_0", typeDictionary.INT);
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(47, typeDictionary.INT),
+                new Operand.RegisterOperand(v0_0)));
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(42, typeDictionary.INT),
+                new Operand.RegisterOperand(v1_0)));
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(1, typeDictionary.INT),
+                new Operand.RegisterOperand(v3_0)));
+        BasicBlock b1 = function.createBlock();
+        BasicBlock b2 = function.createBlock();
+        BasicBlock b3 = function.createBlock();
+        BasicBlock b4 = function.createBlock();
+        function.code(new Instruction.ConditionalBranch(
+                function.currentBlock,
+                new Operand.RegisterOperand(v3_0),
+                b1, b2));
+        function.currentBlock.addSuccessor(b1);
+        function.currentBlock.addSuccessor(b2);
+        function.startBlock(b1);
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(1, typeDictionary.INT),
+                new Operand.RegisterOperand(v1_1)));
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(5, typeDictionary.INT),
+                new Operand.RegisterOperand(v2_0)));
+        function.jumpTo(b3);
+
+        function.startBlock(b2);
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(2, typeDictionary.INT),
+                new Operand.RegisterOperand(v0_2)));
+        function.code(new Instruction.Move(
+                new Operand.ConstantOperand(10, typeDictionary.INT),
+                new Operand.RegisterOperand(v2_2)));
+        function.jumpTo(b3);
+
+        function.startBlock(b3);
+        function.code(new Instruction.Phi(v2_1, Arrays.asList(v2_0, v2_2)));
+        function.code(new Instruction.Phi(v1_2, Arrays.asList(v1_1, v1_0)));
+        function.code(new Instruction.Phi(v0_1, Arrays.asList(v0_0, v0_2)));
+        function.code(new Instruction.Binary(
+                "-",
+                new Operand.RegisterOperand(v4_0),
+                new Operand.RegisterOperand(v0_1),
+                new Operand.RegisterOperand(v2_1)));
+
+        function.jumpTo(b4);
+        function.startBlock(b4);
+        function.code(new Instruction.Ret(new Operand.RegisterOperand(v4_0)));
+        function.startBlock(function.exit);
+        function.isSSA = true;
+
+        System.out.println(function.toStr(new StringBuilder(), true));
+
+        return function;
+    }
+
+    @Test
+    public void testReddit() {
+        CompiledFunction function = buildTestReddit();
+        function.livenessAnalysis();
+        String actual = function.toStr(new StringBuilder(), true).toString();
+        Assert.assertEquals("""
+func foo()->Int
+Reg #0 v0_0 0
+Reg #1 v0_1 1
+Reg #2 v0_2 2
+Reg #3 v1_0 3
+Reg #4 v1_1 4
+Reg #5 v1_2 5
+Reg #6 v2_0 6
+Reg #7 v2_1 7
+Reg #8 v2_2 8
+Reg #9 v3_0 9
+Reg #10 v4_0 10
+L0:
+    v0_0 = 47
+    v1_0 = 42
+    v3_0 = 1
+    if v3_0 goto L2 else goto L3
+    #PHIDEFS = {}
+    #PHIUSES = {}
+    #UEVAR   = {}
+    #VARKILL = {0, 3, 9}
+    #LIVEIN  = {}
+    #LIVEOUT = {0, 3}
+L2:
+    v1_1 = 1
+    v2_0 = 5
+    goto  L4
+    #PHIDEFS = {}
+    #PHIUSES = {0, 4, 6}
+    #UEVAR   = {}
+    #VARKILL = {4, 6}
+    #LIVEIN  = {0}
+    #LIVEOUT = {0, 4, 6}
+L4:
+    v2_1 = phi(v2_0, v2_2)
+    v1_2 = phi(v1_1, v1_0)
+    v0_1 = phi(v0_0, v0_2)
+    v4_0 = v0_1-v2_1
+    goto  L5
+    #PHIDEFS = {1, 5, 7}
+    #PHIUSES = {}
+    #UEVAR   = {1, 7}
+    #VARKILL = {10}
+    #LIVEIN  = {1, 5, 7}
+    #LIVEOUT = {10}
+L5:
+    ret v4_0
+    goto  L1
+    #PHIDEFS = {}
+    #PHIUSES = {}
+    #UEVAR   = {10}
+    #VARKILL = {}
+    #LIVEIN  = {10}
+    #LIVEOUT = {}
+L1:
+    #PHIDEFS = {}
+    #PHIUSES = {}
+    #UEVAR   = {}
+    #VARKILL = {}
+    #LIVEIN  = {}
+    #LIVEOUT = {}
+L3:
+    v0_2 = 2
+    v2_2 = 10
+    goto  L4
+    #PHIDEFS = {}
+    #PHIUSES = {2, 3, 8}
+    #UEVAR   = {}
+    #VARKILL = {2, 8}
+    #LIVEIN  = {3}
+    #LIVEOUT = {2, 3, 8}
+""", actual);
+    }
+
 }

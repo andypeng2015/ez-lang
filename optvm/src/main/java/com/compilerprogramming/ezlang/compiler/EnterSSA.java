@@ -35,6 +35,7 @@ public class EnterSSA {
 
     public EnterSSA(CompiledFunction bytecodeFunction, EnumSet<Options> options) {
         this.function = bytecodeFunction;
+        if (function.isSSA) throw new CompilerException("Supplied function is already in SSA form");
         setupGlobals();
         computeDomTreeAndDominanceFrontiers();
         if (options.contains(Options.DUMP_PRE_SSA_DOMTREE)) {
