@@ -177,7 +177,7 @@ public class Lexer {
 
     private Token scanOthers() {
         if (Character.isDigit(input[position])) return parseNumber();
-        else if (isIdentifierLetter(input[position])) return parseIdentifier();
+        else if (isIdentifierStart(input[position])) return parseIdentifier();
         throw new CompilerException("Unexpected character " + input[position] + " at line " + lineNumber);
     }
 
