@@ -95,7 +95,9 @@ public abstract class AST {
         public StringBuilder toStr(StringBuilder sb) {
             sb.append("struct ").append(name).append("{\n");
             for (VarDecl field : fields) {
-                sb.append("  ").append(field).append("\n");
+                sb.append("  ");
+                field.toStr(sb);
+                sb.append("\n");
             }
             sb.append("}\n");
             return sb;
