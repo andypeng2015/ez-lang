@@ -1,5 +1,7 @@
 package com.compilerprogramming.ezlang.types;
 
+import com.compilerprogramming.ezlang.exceptions.CompilerException;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +29,7 @@ public class Scope {
     }
 
     public Symbol lookup(String name) {
-        Symbol symbol = bindings.get(name);
+        Symbol symbol = localLookup(name);
         if (symbol == null && parent != null)
             symbol = parent.lookup(name);
         return symbol;
@@ -38,6 +40,8 @@ public class Scope {
     }
 
     public Symbol install(String name, Symbol symbol) {
+        if (localLookup(name) != null)
+            throw new CompilerException("Symbol " + name + " already defined in scope");
         bindings.put(name, symbol);
         return symbol;
     }
