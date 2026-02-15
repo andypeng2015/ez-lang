@@ -414,7 +414,9 @@ public abstract class AST {
             array.toStr(sb);
             sb.append("[");
             expr.toStr(sb);
-            return sb.append("]").append("=").append(value);
+            sb.append("]").append("=");
+            value.toStr(sb);
+            return sb;
         }
         @Override
         public void accept(ASTVisitor visitor) {
@@ -438,7 +440,8 @@ public abstract class AST {
         }
         @Override
         public StringBuilder toStr(StringBuilder sb) {
-            return sb.append(value);
+            value.toStr(sb);
+            return sb;
         }
     }
 
@@ -477,7 +480,9 @@ public abstract class AST {
         @Override
         public StringBuilder toStr(StringBuilder sb) {
             object.toStr(sb);
-            return sb.append(".").append(fieldName).append("=").append(value);
+            sb.append(".").append(fieldName).append("=");
+            value.toStr(sb);
+            return sb;
         }
         @Override
         public void accept(ASTVisitor visitor) {
@@ -500,7 +505,9 @@ public abstract class AST {
         }
         @Override
         public StringBuilder toStr(StringBuilder sb) {
-            return sb.append(fieldName).append("=").append(value);
+            sb.append(fieldName).append("=");
+            value.toStr(sb);
+            return sb;
         }
     }
 
