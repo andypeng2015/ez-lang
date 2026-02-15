@@ -438,7 +438,7 @@ public class Parser {
                     matchPunctuation(lexer, ")");
                     prevExpr = new AST.CallExpr(prevExpr, args);
                 }
-                default -> throw new CompilerException("Syntax error");
+                default -> error(currentToken, "Syntax error: expected a postfix operator [ . or C");
             }
         }
         return prevExpr;
