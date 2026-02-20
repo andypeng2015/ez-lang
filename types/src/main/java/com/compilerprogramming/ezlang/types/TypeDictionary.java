@@ -2,7 +2,7 @@ package com.compilerprogramming.ezlang.types;
 
 import com.compilerprogramming.ezlang.exceptions.CompilerException;
 
-public class TypeDictionary extends Scope {
+public final class TypeDictionary extends Scope {
     public final EZType.EZTypeUnknown UNKNOWN;
     public final EZType.EZTypeInteger INT;
     public final EZType.EZTypeNull NULL;

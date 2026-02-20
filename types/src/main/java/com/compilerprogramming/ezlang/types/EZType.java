@@ -52,13 +52,18 @@ public abstract class EZType {
     }
     public String name() { return name; }
 
+    /**
+     * Can we assign a value of other type to a var of this type?
+     */
     public boolean isAssignable(EZType other) {
         if (other == null || other instanceof EZTypeVoid || other instanceof EZTypeUnknown)
             return false;
         if (this == other || equals(other)) return true;
         if (this instanceof EZTypeNullable nullable) {
+            // if this is Nullable and other is null then okay
             if (other instanceof EZTypeNull)
                 return true;
+            // if this is Nullable and other is compatible with base type then okay
             return nullable.baseType.isAssignable(other);
         }
         else if (other instanceof EZTypeNullable nullable) {
