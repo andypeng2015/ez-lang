@@ -134,7 +134,7 @@ public class CompiledFunction {
             if (virtualStack.size() == 1)
                 codeReturn(pop());
             else if (virtualStack.size() > 1)
-                throw new CompilerException("Virtual stack has more than one item at return");
+                throw new CompilerException("Virtual stack has more than one item at return", returnStmt.lineNumber);
         }
         jumpTo(exit);
     }
@@ -196,14 +196,14 @@ public class CompiledFunction {
 
     private void compileContinue(AST.ContinueStmt continueStmt) {
         if (currentContinueTarget == null)
-            throw new CompilerException("No continue target found");
+            throw new CompilerException("No continue target found", continueStmt.lineNumber);
         assert !issa.isSealed(currentContinueTarget);
         jumpTo(currentContinueTarget);
     }
 
     private void compileBreak(AST.BreakStmt breakStmt) {
         if (currentBreakTarget == null)
-            throw new CompilerException("No break target found");
+            throw new CompilerException("No break target found", breakStmt.lineNumber);
         assert !issa.isSealed(currentBreakTarget);
         jumpTo(currentBreakTarget);
     }
@@ -332,7 +332,7 @@ public class CompiledFunction {
         EZType.EZTypeFunction calleeType = null;
         if (callee instanceof Operand.LocalFunctionOperand functionOperand)
             calleeType = functionOperand.functionType;
-        else throw new CompilerException("Cannot call a non function type");
+        else throw new CompilerException("Cannot call a non function type", callExpr.lineNumber);
         var returnStackPos = virtualStack.size();
         List<Operand.RegisterOperand> args = new ArrayList<>();
         for (AST.Expr expr: callExpr.args) {
@@ -375,7 +375,7 @@ public class CompiledFunction {
         EZType.EZTypeStruct typeStruct = getStructType(fieldExpr.object.type);
         int fieldIndex = typeStruct.getFieldIndex(fieldExpr.fieldName);
         if (fieldIndex < 0)
-            throw new CompilerException("Field " + fieldExpr.fieldName + " not found");
+            throw new CompilerException("Field " + fieldExpr.fieldName + " not found", fieldExpr.lineNumber);
         boolean indexed = compileExpr(fieldExpr.object);
         if (indexed)
             codeIndexedLoad();
@@ -398,7 +398,7 @@ public class CompiledFunction {
         EZType.EZTypeStruct structType = (EZType.EZTypeStruct) setFieldExpr.object.type;
         int fieldIndex = structType.getFieldIndex(setFieldExpr.fieldName);
         if (fieldIndex == -1)
-            throw new CompilerException("Field " + setFieldExpr.fieldName + " not found in struct " + structType.name);
+            throw new CompilerException("Field " + setFieldExpr.fieldName + " not found in struct " + structType.name, setFieldExpr.lineNumber);
         if (setFieldExpr instanceof AST.InitFieldExpr)
             pushOperand(top());
         else
@@ -500,7 +500,7 @@ public class CompiledFunction {
             switch (opCode) {
                 case "==": value = 1; break;
                 case "!=": value = 0; break;
-                default: throw new CompilerException("Invalid binary op");
+                default: throw new CompilerException("Invalid binary op", binaryExpr.lineNumber);
             }
             pushConstant(value, typeDictionary.INT);
         }
@@ -519,7 +519,7 @@ public class CompiledFunction {
                 case ">": value = leftconstant.value > rightconstant.value ? 1 : 0; break;
                 case "<=": value = leftconstant.value <= rightconstant.value ? 1 : 0; break;
                 case ">=": value = leftconstant.value <= rightconstant.value ? 1 : 0; break;
-                default: throw new CompilerException("Invalid binary op");
+                default: throw new CompilerException("Invalid binary op", binaryExpr.lineNumber);
             }
             pushConstant(value, leftconstant.type);
         }
@@ -542,7 +542,7 @@ public class CompiledFunction {
                 case "-": pushConstant(-constant.value, constant.type); break;
                 // Maybe below we should explicitly set Int
                 case "!": pushConstant(constant.value == 0?1:0, constant.type); break;
-                default: throw new CompilerException("Invalid unary op");
+                default: throw new CompilerException("Invalid unary op", unaryExpr.lineNumber);
             }
         }
         else {
@@ -557,7 +557,7 @@ public class CompiledFunction {
             pushConstant(constantExpr.value.num.intValue(), constantExpr.type);
         else if (constantExpr.type instanceof EZType.EZTypeNull)
             pushNullConstant(constantExpr.type);
-        else throw new CompilerException("Invalid constant type");
+        else throw new CompilerException("Invalid constant type", constantExpr.lineNumber);
         return false;
     }
 

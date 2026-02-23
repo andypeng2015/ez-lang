@@ -135,7 +135,7 @@ public class Interpreter {
                             case "-": execStack.stack[base + unaryInst.result().frameSlot()] = new Value.IntegerValue(-integerValue.value); break;
                             // Maybe below we should explicitly set Int
                             case "!": execStack.stack[base + unaryInst.result().frameSlot()] = new Value.IntegerValue(integerValue.value==0?1:0); break;
-                            default: throw new CompilerException("Invalid unary op");
+                            default: throw new InterpreterException("Invalid unary op");
                         }
                     }
                     else

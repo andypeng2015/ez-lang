@@ -29,7 +29,7 @@ public final class TypeDictionary extends Scope {
                 var arrayType = intern(new EZType.EZTypeArray(elementType));
                 return isNullable ? intern(new EZType.EZTypeNullable(arrayType)) : arrayType;
             }
-            case null, default -> throw new CompilerException("Unsupported array element type: " + elementType);
+            case null, default -> throw new CompilerException("Unsupported array element type: " + elementType,-1);
         }
     }
     public EZType intern(EZType type) {
@@ -55,7 +55,7 @@ public final class TypeDictionary extends Scope {
         else if (t2 instanceof EZType.EZTypeUnknown)
             return t1;
         else if (!t1.equals(t2))
-            throw new CompilerException("Unsupported merge type: " + t1 + " and " + t2);
+            throw new CompilerException("Unsupported merge type: " + t1 + " and " + t2, -1);
         return t1;
     }
 }

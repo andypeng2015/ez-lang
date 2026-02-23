@@ -413,12 +413,12 @@ public class Compiler {
         Node objPtr = compileExpr(getFieldExpr.object).keep();
         // Sanity check expr for being a reference
         if( !(objPtr._type instanceof TypeMemPtr ptr) ) {
-            throw new CompilerException("Unexpected type " + objPtr._type.str());
+            throw new CompilerException("Unexpected type " + objPtr._type.str(), getFieldExpr.lineNumber);
         }
         String name = getFieldExpr.fieldName;
         TypeStruct base = ptr._obj;
         int fidx = base.find(name);
-        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'");
+        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'", getFieldExpr.lineNumber);
         Field f = base._fields[fidx];  // Field from field index
         Type tf = f._type;
         // Field offset; fixed for structs
@@ -441,13 +441,13 @@ public class Compiler {
             objPtr = compileExpr(setFieldExpr.object);
         // Sanity check expr for being a reference
         if( !(objPtr._type instanceof TypeMemPtr ptr) ) {
-            throw new CompilerException("Unexpected type " + objPtr._type.str());
+            throw new CompilerException("Unexpected type " + objPtr._type.str(), setFieldExpr.lineNumber);
         }
         Node val = compileExpr(setFieldExpr.value).keep();
         String name = setFieldExpr.fieldName;
         TypeStruct base = ptr._obj;
         int fidx = base.find(name);
-        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'");
+        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'", setFieldExpr.lineNumber);
         Field f = base._fields[fidx];  // Field from field index
         Type tf = f._type;
         Node mem = memAlias(f._alias);
@@ -460,14 +460,14 @@ public class Compiler {
         Node objPtr = compileExpr(arrayLoadExpr.array).keep();
         // Sanity check expr for being a reference
         if( !(objPtr._type instanceof TypeMemPtr ptr) ) {
-            throw new CompilerException("Unexpected type " + objPtr._type.str());
+            throw new CompilerException("Unexpected type " + objPtr._type.str(), arrayLoadExpr.lineNumber);
         }
         String name = "[]";
         TypeStruct base = ptr._obj;
         Node index = compileExpr(arrayLoadExpr.expr).keep();
         Node off = peep(new AddNode(con(base.aryBase()),peep(new ShlNode(index.unkeep(),con(base.aryScale()))))).keep();
         int fidx = base.find(name);
-        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'");
+        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'", arrayLoadExpr.lineNumber);
         Field f = base._fields[fidx];  // Field from field index
         Type tf = f._type;
         Node load = new LoadNode(name, f._alias, tf, memAlias(f._alias), objPtr, off);
@@ -489,7 +489,7 @@ public class Compiler {
             objPtr = compileExpr(arrayStoreExpr.array);
         // Sanity check expr for being a reference
         if( !(objPtr._type instanceof TypeMemPtr ptr) ) {
-            throw new CompilerException("Unexpected type " + objPtr._type.str());
+            throw new CompilerException("Unexpected type " + objPtr._type.str(), arrayStoreExpr.lineNumber);
         }
         String name = "[]";
         TypeStruct base = ptr._obj;
@@ -497,7 +497,7 @@ public class Compiler {
         Node off = peep(new AddNode(con(base.aryBase()),peep(new ShlNode(index.unkeep(),con(base.aryScale()))))).keep();
         Node val = compileExpr(arrayStoreExpr.value).keep();
         int fidx = base.find(name);
-        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'");
+        if( fidx == -1 ) throw error("Accessing unknown field '" + name + "' from '" + ptr.str() + "'", arrayStoreExpr.lineNumber);
         Field f = base._fields[fidx];  // Field from field index
         Type tf = f._type;
         Node mem = memAlias(f._alias);
@@ -511,7 +511,7 @@ public class Compiler {
         ctorStack.add(objPtr);
         // Sanity check expr for being a reference
         if( !(objPtr._type instanceof TypeMemPtr ptr) ) {
-            throw new CompilerException("Unexpected type " + objPtr._type.str());
+            throw new CompilerException("Unexpected type " + objPtr._type.str(), initExpr.lineNumber);
         }
         if (initExpr.initExprList != null && !initExpr.initExprList.isEmpty()) {
             for (AST.Expr expr : initExpr.initExprList) {
@@ -562,7 +562,7 @@ public class Compiler {
             return newStruct(tptr._obj,con(tptr._obj.offset(tptr._obj._fields.length)));
         }
         else
-            throw new CompilerException("Unexpected type: " + type);
+            throw new CompilerException("Unexpected type: " + type, newExpr.lineNumber);
     }
 
 
@@ -572,7 +572,7 @@ public class Compiler {
             case "-": return peep(new MinusNode(compileExpr(unaryExpr.expr)).widen());
             // Maybe below we should explicitly set Int
             case "!": return peep(new NotNode(compileExpr(unaryExpr.expr)));
-            default: throw new CompilerException("Invalid unary op");
+            default: throw new CompilerException("Invalid unary op", unaryExpr.lineNumber);
         }
     }
 
@@ -584,7 +584,7 @@ public class Compiler {
         switch (opCode) {
             case "&&":
             case "||":
-                throw new CompilerException("Not yet implemented");
+                throw new CompilerException("Not yet implemented", binaryExpr.lineNumber);
             case "==":
                 idx=2;  lhs = new BoolNode.EQ(lhs, null);
                 break;
@@ -616,7 +616,7 @@ public class Compiler {
                 idx=2; lhs = new DivNode(lhs,null);
                 break;
             default:
-                throw new CompilerException("Not yet implemented");
+                throw new CompilerException("Not yet implemented", binaryExpr.lineNumber);
         }
         lhs.setDef(idx,compileExpr(binaryExpr.expr2));
         lhs = peep(lhs.widen());
@@ -630,7 +630,7 @@ public class Compiler {
             return con(constantExpr.value.num.intValue());
         else if (constantExpr.type instanceof EZType.EZTypeNull)
             return NIL;
-        else throw new CompilerException("Invalid constant type");
+        else throw new CompilerException("Invalid constant type", constantExpr.lineNumber);
     }
 
     private Node compileSymbolExpr(AST.NameExpr symbolExpr) {
@@ -639,9 +639,9 @@ public class Compiler {
         else {
             Symbol.VarSymbol varSymbol = (Symbol.VarSymbol) symbolExpr.symbol;
             Var v = _scope.lookup(makeVarName(varSymbol));
-            if (v == null) throw new CompilerException("Unknown variable name: " + varSymbol.name);
+            if (v == null) throw new CompilerException("Unknown variable name: " + varSymbol.name, symbolExpr.lineNumber);
             Node n = _scope.in(v._idx);
-            if (n == null) throw new CompilerException("Variable " + varSymbol.name + " not defined");
+            if (n == null) throw new CompilerException("Variable " + varSymbol.name + " not defined", symbolExpr.lineNumber);
             return n;
         }
     }
@@ -655,9 +655,9 @@ public class Compiler {
     private Node compileCallExpr(AST.CallExpr callExpr) {
         Node expr = compileExpr(callExpr.callee);
         if( expr._type == Type.NIL )
-            throw error("Calling a null function pointer");
+            throw error("Calling a null function pointer", callExpr.lineNumber);
         if( !(expr instanceof FRefNode) && !expr._type.isa(TypeFunPtr.BOT) )
-            throw error("Expected a function but got "+expr._type.glb(false).str());
+            throw error("Expected a function but got "+expr._type.glb(false).str(), callExpr.lineNumber);
         expr.keep();            // Keep while parsing args
 
         Ary<Node> args = new Ary<Node>(Node.class);
@@ -914,13 +914,13 @@ public class Compiler {
         var nameExpr = assignStmt.nameExpr;
         String name = nameExpr.name;
         if (!(nameExpr.symbol instanceof Symbol.VarSymbol varSymbol))
-            throw new CompilerException("Assignment requires a variable name");
+            throw new CompilerException("Assignment requires a variable name", assignStmt.lineNumber);
         String scopedName = makeVarName(varSymbol);
         // Parse rhs
         Node expr = compileExpr(assignStmt.rhs);
         Var def = _scope.lookup(scopedName);
         if( def==null )
-            throw error("Undefined name '" + name + "'");
+            throw error("Undefined name '" + name + "'", assignStmt.lineNumber);
         // Update
         _scope.update(scopedName,expr);
         return expr;
@@ -933,7 +933,7 @@ public class Compiler {
         Node expr = compileExpr(letStmt.expr);
         Var def = _scope.lookup(scopedName);
         if( def==null )
-            throw error("Undefined name '" + name + "'");
+            throw error("Undefined name '" + name + "'", letStmt.lineNumber);
         // Update
         _scope.update(scopedName,expr);
         return expr;
@@ -978,9 +978,10 @@ public class Compiler {
     private void memAlias(int alias, Node st) {        _scope.mem(alias, st); }
     public static String memName(int alias) { return ("$"+alias).intern(); }
 
-    CompilerException errorSyntax(String syntax) { return _errorSyntax("expected "+syntax);  }
-    private CompilerException _errorSyntax(String msg) {
-        return error("Syntax error, "+msg);
+    CompilerException errorSyntax(String syntax, int lineNumber) { return _errorSyntax("expected "+syntax, lineNumber);  }
+    private CompilerException _errorSyntax(String msg, int lineNumber) {
+        return error("Syntax error, "+msg, lineNumber);
     }
-    public static CompilerException error(String msg) { return new CompilerException(msg); }
+    public static CompilerException error(String msg, int lineNumber) { return new CompilerException(msg, lineNumber); }
+    public static CompilerException error(String msg) { return new CompilerException(msg, -1); }
 }

@@ -127,13 +127,13 @@ public class CompiledFunction {
 
     private void compileContinue(AST.ContinueStmt continueStmt) {
         if (currentContinueTarget == null)
-            throw new CompilerException("No continue target found");
+            throw new CompilerException("No continue target found", continueStmt.lineNumber);
         jumpTo(currentContinueTarget);
     }
 
     private void compileBreak(AST.BreakStmt breakStmt) {
         if (currentBreakTarget == null)
-            throw new CompilerException("No break target found");
+            throw new CompilerException("No break target found", breakStmt.lineNumber);
         jumpTo(currentBreakTarget);
     }
 
@@ -258,7 +258,7 @@ public class CompiledFunction {
         return false;
     }
 
-    private EZType.EZTypeStruct getStructType(EZType t) {
+    private EZType.EZTypeStruct getStructType(EZType t, int lineNumber) {
         if (t instanceof EZType.EZTypeStruct typeStruct) {
             return typeStruct;
         }
@@ -267,14 +267,14 @@ public class CompiledFunction {
             return typeStruct;
         }
         else
-            throw new CompilerException("Unexpected type: " + t);
+            throw new CompilerException("Unexpected type: " + t, lineNumber);
     }
 
     private boolean compileFieldExpr(AST.GetFieldExpr fieldExpr) {
-        EZType.EZTypeStruct typeStruct = getStructType(fieldExpr.object.type);
+        EZType.EZTypeStruct typeStruct = getStructType(fieldExpr.object.type, fieldExpr.lineNumber);
         int fieldIndex = typeStruct.getFieldIndex(fieldExpr.fieldName);
         if (fieldIndex < 0)
-            throw new CompilerException("Field " + fieldExpr.fieldName + " not found");
+            throw new CompilerException("Field " + fieldExpr.fieldName + " not found", fieldExpr.lineNumber);
         boolean indexed = compileExpr(fieldExpr.object);
         if (indexed)
             codeIndexedLoad();
@@ -294,7 +294,7 @@ public class CompiledFunction {
         EZType.EZTypeStruct structType = (EZType.EZTypeStruct) setFieldExpr.object.type;
         int fieldIndex = structType.getFieldIndex(setFieldExpr.fieldName);
         if (fieldIndex == -1)
-            throw new CompilerException("Field " + setFieldExpr.fieldName + " not found in struct " + structType.name);
+            throw new CompilerException("Field " + setFieldExpr.fieldName + " not found in struct " + structType.name, setFieldExpr.lineNumber);
         if (!(setFieldExpr instanceof AST.InitFieldExpr))
             compileExpr(setFieldExpr.object);
         code(new Instruction.PushConst(fieldIndex));
@@ -395,7 +395,7 @@ public class CompiledFunction {
             case ">" -> opCode = Instruction.GT;
             case "<=" -> opCode = Instruction.LE;
             case ">=" -> opCode = Instruction.GE;
-            default -> throw new CompilerException("Invalid binary op");
+            default -> throw new CompilerException("Invalid binary op", binaryExpr.lineNumber);
         }
         code(new Instruction.BinaryOp(opCode));
         return false;
@@ -409,7 +409,7 @@ public class CompiledFunction {
         switch (unaryExpr.op.str) {
             case "-" -> opCode = Instruction.NEG_I;
             case "!" -> opCode = Instruction.NOT;
-            default -> throw new CompilerException("Invalid binary op");
+            default -> throw new CompilerException("Invalid binary op", unaryExpr.lineNumber);
         }
         code(new Instruction.UnaryOp(opCode));
         return false;

@@ -17,11 +17,17 @@
 package com.compilerprogramming.ezlang.exceptions;
 
 public class CompilerException extends RuntimeException {
-    public CompilerException(String message) {
-        super(message);
-    }
+    int lineNumber;
 
+    public CompilerException(String message, int lineNumber) {
+        super(message);
+        this.lineNumber = lineNumber;
+    }
+    public CompilerException(String message) {
+        this(message,-1);
+    }
     public CompilerException(String message, Throwable cause) {
         super(message, cause);
+        lineNumber = -1;
     }
 }

@@ -41,7 +41,8 @@ public class Scope {
 
     public Symbol install(String name, Symbol symbol) {
         if (localLookup(name) != null)
-            throw new CompilerException("Symbol " + name + " already defined in scope");
+            // FIXME attach line number to symbol
+            throw new CompilerException("Symbol " + name + " already defined in scope",-1);
         bindings.put(name, symbol);
         return symbol;
     }

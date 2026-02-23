@@ -115,12 +115,13 @@ public abstract class EZType {
             super(TSTRUCT, name);
         }
         public void addField(String name, EZType type) {
+            // FIXME attach line info to type
             if (!pending)
-                throw new CompilerException("Cannot add field to an already defined struct");
+                throw new CompilerException("Cannot add field to an already defined struct",-1);
             if (fieldNames.contains(name))
-                throw new CompilerException("Field " + name + " already exists in struct " + this.name);
+                throw new CompilerException("Field " + name + " already exists in struct " + this.name,-1);
             if (type == null)
-                throw new CompilerException("Cannot a field with null type");
+                throw new CompilerException("Cannot a field with null type",-1);
             fieldNames.add(name);
             fieldTypes.add(type);
         }
@@ -156,7 +157,7 @@ public abstract class EZType {
             super(TARRAY, "[" + baseType.name() + "]");
             this.elementType = baseType;
             if (baseType instanceof EZTypeArray)
-                throw new CompilerException("Array of array type not supported");
+                throw new CompilerException("Array of array type not supported",-1);
         }
         public EZType getElementType() {
             return elementType;

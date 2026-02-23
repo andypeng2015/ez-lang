@@ -21,7 +21,7 @@ public class Parser {
     }
 
     private void error(Token t, String errorMessage) {
-        throw new CompilerException("Line " + t.lineNumber + ": " + errorMessage + " got " + t.str);
+        throw new CompilerException("Line " + t.lineNumber + ": " + errorMessage + " got " + t.str, t.lineNumber);
     }
 
     private void matchPunctuation(Lexer lexer, String value) {
@@ -265,7 +265,7 @@ public class Parser {
             else if (lhs instanceof AST.NameExpr nameExpr) {
                 return new AST.AssignStmt(nameExpr, rhs, lineNumber);
             }
-            else throw new CompilerException("Expected a name, expr[] or expr.field");
+            else throw new CompilerException("Expected a name, expr[] or expr.field", lineNumber);
         }
     }
 

@@ -36,7 +36,7 @@ public class SemaDefineTypes implements ASTVisitor {
     @Override
     public ASTVisitor enter(AST.FuncDecl funcDecl) {
         if (typeDictionary.lookup(funcDecl.name) != null) {
-            throw new CompilerException("Symbol " + funcDecl.name + " is already declared");
+            throw new CompilerException("Symbol " + funcDecl.name + " is already declared", funcDecl.lineNumber);
         }
         // Create function scope, that houses function parameters
         currentScope = new Scope(currentScope, true);
@@ -64,10 +64,10 @@ public class SemaDefineTypes implements ASTVisitor {
         if (structSymbol != null) {
             if (structSymbol.type instanceof EZType.EZTypeStruct lookupStructType) {
                 if (!lookupStructType.pending)
-                    throw new CompilerException("Struct type " + structDecl.name + " is already declared");
+                    throw new CompilerException("Struct type " + structDecl.name + " is already declared", structDecl.lineNumber);
             }
             else
-                throw new CompilerException("Symbol " + structDecl.name + " is already declared");
+                throw new CompilerException("Symbol " + structDecl.name + " is already declared", structDecl.lineNumber);
         }
         else {
             EZType.EZTypeStruct structType = new EZType.EZTypeStruct(structDecl.name);
@@ -91,12 +91,12 @@ public class SemaDefineTypes implements ASTVisitor {
     public ASTVisitor enter(AST.VarDecl varDecl) {
         if (varDecl.varType == AST.VarType.STRUCT_FIELD && currentStructDecl != null) {
             if (currentScope.lookup(varDecl.name) != null) {
-                throw new CompilerException("Field " + varDecl.name + " is already declared");
+                throw new CompilerException("Field " + varDecl.name + " is already declared", varDecl.lineNumber);
             }
         }
         else if (varDecl.varType == AST.VarType.FUNCTION_PARAMETER && currentFuncDecl != null) {
             if (currentScope.lookup(varDecl.name) != null) {
-                throw new CompilerException("Function parameter " + varDecl.name + " is already declared");
+                throw new CompilerException("Function parameter " + varDecl.name + " is already declared", varDecl.lineNumber);
             }
         }
         return this;
@@ -112,14 +112,14 @@ public class SemaDefineTypes implements ASTVisitor {
                 && currentFuncDecl != null
                 && currentScope == currentFuncDecl.scope) {
             if (currentScope.localLookup(varDecl.name) != null)
-                throw new CompilerException("Parameter " + varDecl.name + " is already declared");
+                throw new CompilerException("Parameter " + varDecl.name + " is already declared", varDecl.lineNumber);
             EZType.EZTypeFunction type = (EZType.EZTypeFunction) currentFuncDecl.symbol.type;
             varDecl.symbol = currentScope.install(varDecl.name, new Symbol.ParameterSymbol(varDecl.name, varDecl.typeExpr.type));
             type.addArg(varDecl.symbol);
         }
         else if (varDecl.varType == AST.VarType.VARIABLE) {
             if (currentScope.localLookup(varDecl.name) != null)
-                throw new CompilerException("Variable " + varDecl.name + " is already declared");
+                throw new CompilerException("Variable " + varDecl.name + " is already declared", varDecl.lineNumber);
             varDecl.symbol = currentScope.install(varDecl.name, new Symbol.VarSymbol(varDecl.name, varDecl.typeExpr.type));
         }
     }
@@ -133,7 +133,7 @@ public class SemaDefineTypes implements ASTVisitor {
         else
             baseType = typeSymbol.type;
         if (baseType.isPrimitive())
-            throw new CompilerException("Cannot make Nullable instance of primitive type");
+            throw new CompilerException("Cannot make Nullable instance of primitive type", simpleTypeExpr.lineNumber);
         return typeDictionary.intern(new EZType.EZTypeNullable(baseType));
     }
 
@@ -213,7 +213,7 @@ public class SemaDefineTypes implements ASTVisitor {
     @Override
     public ASTVisitor enter(AST.VarStmt varStmt) {
         if (currentScope.localLookup(varStmt.varName) != null)
-            throw new CompilerException("Variable " + varStmt.varName + " already declared in current scope");
+            throw new CompilerException("Variable " + varStmt.varName + " already declared in current scope", varStmt.lineNumber);
         varStmt.symbol = (Symbol.VarSymbol) currentScope.install(varStmt.varName, new Symbol.VarSymbol(varStmt.varName, typeDictionary.UNKNOWN));
         return this;
     }
