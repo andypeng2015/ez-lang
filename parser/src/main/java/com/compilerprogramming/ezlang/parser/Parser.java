@@ -53,7 +53,7 @@ public class Parser {
     }
 
     private AST.Program parseProgram(Lexer lexer) {
-        AST.Program program = new AST.Program();
+        AST.Program program = new AST.Program(lexer.lineNumber());
         parseDefinitions(lexer, program);
         return program;
     }
@@ -70,6 +70,7 @@ public class Parser {
     }
 
     private AST.FuncDecl parseFunction(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         matchIdentifier(lexer, "func");
         if (currentToken.kind != Token.Kind.IDENT)
             error(currentToken, "Syntax error: Function name expected");
@@ -87,10 +88,11 @@ public class Parser {
         if (testPunctuation(lexer, "->"))
             returnType = parseTypeExpr(lexer);
         AST.BlockStmt block = parseBlock(lexer);
-        return new AST.FuncDecl(functionName, params.toArray(new AST.VarDecl[0]), returnType, block);
+        return new AST.FuncDecl(functionName, params.toArray(new AST.VarDecl[0]), returnType, block, lineNumber);
     }
 
     private AST.VarDecl parseVarDeclaration(Lexer lexer, boolean expectVar, AST.VarType varType) {
+        int lineNumber = lexer.lineNumber();
         if (expectVar)
             matchIdentifier(lexer, "var");
         if (currentToken.kind != Token.Kind.IDENT)
@@ -99,10 +101,11 @@ public class Parser {
         nextToken(lexer);
         matchPunctuation(lexer, ":");
         AST.TypeExpr fieldType = parseTypeExpr(lexer);
-        return new AST.VarDecl(identifier, varType, fieldType);
+        return new AST.VarDecl(identifier, varType, fieldType, lineNumber);
     }
 
     private AST.ArrayTypeExpr parseArrayTypeExpr(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         matchPunctuation(lexer, "[");
         AST.SimpleTypeExpr elementType = parseSimpleTypeExpr(lexer);
         matchPunctuation(lexer, "]");
@@ -110,10 +113,11 @@ public class Parser {
         if (testPunctuation(lexer, "?"))
             isNullable = true;
 
-        return isNullable ? new AST.NullableArrayTypeExpr(elementType) : new AST.ArrayTypeExpr(elementType);
+        return isNullable ? new AST.NullableArrayTypeExpr(elementType, lineNumber) : new AST.ArrayTypeExpr(elementType, lineNumber);
     }
 
     private AST.SimpleTypeExpr parseSimpleTypeExpr(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         String typeName = null;
         if (currentToken.kind == Token.Kind.IDENT)
             typeName = currentToken.str;
@@ -123,7 +127,7 @@ public class Parser {
         boolean isNullable = false;
         if (testPunctuation(lexer, "?"))
             isNullable = true;
-        return isNullable ? new AST.NullableSimpleTypeExpr(typeName) : new AST.SimpleTypeExpr(typeName);
+        return isNullable ? new AST.NullableSimpleTypeExpr(typeName, lineNumber) : new AST.SimpleTypeExpr(typeName, lineNumber);
     }
 
     private AST.TypeExpr parseTypeExpr(Lexer lexer) {
@@ -134,6 +138,7 @@ public class Parser {
     }
 
     private AST.StructDecl parseStructDeclaration(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         matchIdentifier(lexer, "struct");
         String structName = null;
         if (currentToken.kind == Token.Kind.IDENT)
@@ -149,20 +154,21 @@ public class Parser {
             testPunctuation(lexer, ";");
         }
         matchPunctuation(lexer, "}");
-        return new AST.StructDecl(structName, fields.toArray(new AST.VarDecl[0]));
+        return new AST.StructDecl(structName, fields.toArray(new AST.VarDecl[0]), lineNumber);
     }
 
     private AST.Stmt parseVarDeclOrStmt(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         matchIdentifier(lexer, "var");
         AST.Stmt stmt = null;
         if (currentToken.kind == Token.Kind.IDENT && lexer.peekChar() == '=') {
             String name = currentToken.str;
             nextToken(lexer);
             matchPunctuation(lexer, "=");
-            stmt = new AST.VarStmt(name, parseBool(lexer));
+            stmt = new AST.VarStmt(name, parseBool(lexer), lineNumber);
         }
         else {
-            stmt = new AST.VarDeclStmt(parseVarDeclaration(lexer, false, AST.VarType.VARIABLE));
+            stmt = new AST.VarDeclStmt(parseVarDeclaration(lexer, false, AST.VarType.VARIABLE), lineNumber);
         }
         testPunctuation(lexer, ";");
         return stmt;
@@ -173,6 +179,7 @@ public class Parser {
         AST.Stmt s1;
         AST.Stmt s2;
 
+        int lineNumber = lexer.lineNumber();
         switch (currentToken.str) {
             case "var" -> {
                 return parseVarDeclOrStmt(lexer);
@@ -184,11 +191,11 @@ public class Parser {
                 matchPunctuation(lexer, ")");
                 s1 = parseStatement(lexer);
                 if (!isToken(currentToken, "else")) {
-                    return new AST.IfElseStmt(x, s1, null);
+                    return new AST.IfElseStmt(x, s1, null, lineNumber);
                 }
                 matchIdentifier(lexer, "else");
                 s2 = parseStatement(lexer);
-                return new AST.IfElseStmt(x, s1, s2);
+                return new AST.IfElseStmt(x, s1, s2, lineNumber);
             }
             case "while" -> {
                 matchIdentifier(lexer, "while");
@@ -196,7 +203,7 @@ public class Parser {
                 x = parseBool(lexer);
                 matchPunctuation(lexer, ")");
                 var savedWhile = currentWhile;
-                var whileStmt = currentWhile = new AST.WhileStmt(x);
+                var whileStmt = currentWhile = new AST.WhileStmt(x, lineNumber);
                 currentWhile.stmt = parseStatement(lexer);
                 currentWhile = savedWhile;
                 return whileStmt;
@@ -204,12 +211,12 @@ public class Parser {
             case "break" -> {
                 matchIdentifier(lexer, "break");
                 testPunctuation(lexer, ";");
-                return new AST.BreakStmt(currentWhile);
+                return new AST.BreakStmt(currentWhile, lineNumber);
             }
             case "continue" -> {
                 matchIdentifier(lexer, "continue");
                 testPunctuation(lexer, ";");
-                return new AST.ContinueStmt(currentWhile);
+                return new AST.ContinueStmt(currentWhile, lineNumber);
             }
             case "return" -> {
                 matchIdentifier(lexer, "return");
@@ -217,7 +224,7 @@ public class Parser {
                     && !isToken(currentToken, "}"))
                     x = parseBool(lexer);
                 testPunctuation(lexer, ";");
-                return new AST.ReturnStmt(x);
+                return new AST.ReturnStmt(x, lineNumber);
             }
             case "{" -> {
                 return parseBlock(lexer);
@@ -229,8 +236,9 @@ public class Parser {
     }
 
     private AST.BlockStmt parseBlock(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         matchPunctuation(lexer, "{");
-        var block = new AST.BlockStmt();
+        var block = new AST.BlockStmt(lineNumber);
         while (currentToken.kind != Token.Kind.EOZ && !testPunctuation(lexer, "}")) {
             block.stmtList.add(parseStatement(lexer));
         }
@@ -239,22 +247,23 @@ public class Parser {
 
     // Parse assignment or expression statement
     private AST.Stmt parseAssign(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         AST.Expr lhs = parseBool(lexer);
         AST.Expr rhs = null;
         if (testPunctuation(lexer, "="))
             rhs = parseBool(lexer);
         testPunctuation(lexer, ";");
         if (rhs == null)
-            return new AST.ExprStmt(lhs);
+            return new AST.ExprStmt(lhs, lineNumber);
         else {
             if (lhs instanceof AST.ArrayLoadExpr arrayLoadExpr) {
-                return new AST.ExprStmt(new AST.ArrayStoreExpr(arrayLoadExpr.array, arrayLoadExpr.expr, rhs));
+                return new AST.ExprStmt(new AST.ArrayStoreExpr(arrayLoadExpr.array, arrayLoadExpr.expr, rhs, lineNumber), lineNumber);
             }
             else if (lhs instanceof AST.GetFieldExpr getFieldExpr) {
-                return new AST.ExprStmt(new AST.SetFieldExpr(getFieldExpr.object, getFieldExpr.fieldName, rhs));
+                return new AST.ExprStmt(new AST.SetFieldExpr(getFieldExpr.object, getFieldExpr.fieldName, rhs, lineNumber), lineNumber);
             }
             else if (lhs instanceof AST.NameExpr nameExpr) {
-                return new AST.AssignStmt(nameExpr, rhs);
+                return new AST.AssignStmt(nameExpr, rhs, lineNumber);
             }
             else throw new CompilerException("Expected a name, expr[] or expr.field");
         }
@@ -265,7 +274,7 @@ public class Parser {
         while (isToken(currentToken, "||")) {
             var tok = currentToken;
             nextToken(lexer);
-            x = new AST.BinaryExpr(tok, x, parseAnd(lexer));
+            x = new AST.BinaryExpr(tok, x, parseAnd(lexer), tok.lineNumber);
         }
         return x;
     }
@@ -275,7 +284,7 @@ public class Parser {
         while (isToken(currentToken, "&&")) {
             var tok = currentToken;
             nextToken(lexer);
-            x = new AST.BinaryExpr(tok, x, parseRelational(lexer));
+            x = new AST.BinaryExpr(tok, x, parseRelational(lexer), tok.lineNumber);
         }
         return x;
     }
@@ -290,7 +299,7 @@ public class Parser {
                 || isToken(currentToken, ">=")) {
             var tok = currentToken;
             nextToken(lexer);
-            x = new AST.BinaryExpr(tok, x, parseAddition(lexer));
+            x = new AST.BinaryExpr(tok, x, parseAddition(lexer), tok.lineNumber);
         }
         return x;
     }
@@ -301,7 +310,7 @@ public class Parser {
                 || isToken(currentToken, "+")) {
             var tok = currentToken;
             nextToken(lexer);
-            x = new AST.BinaryExpr(tok, x, parseMultiplication(lexer));
+            x = new AST.BinaryExpr(tok, x, parseMultiplication(lexer), tok.lineNumber);
         }
         return x;
     }
@@ -313,7 +322,7 @@ public class Parser {
                 || isToken(currentToken, "/")) {
             var tok = currentToken;
             nextToken(lexer);
-            x = new AST.BinaryExpr(tok, x, parseUnary(lexer));
+            x = new AST.BinaryExpr(tok, x, parseUnary(lexer), tok.lineNumber);
         }
         return x;
     }
@@ -323,7 +332,7 @@ public class Parser {
                 || isToken(currentToken, "!")) {
             var tok = currentToken;
             nextToken(lexer);
-            return new AST.UnaryExpr(tok, parseUnary(lexer));
+            return new AST.UnaryExpr(tok, parseUnary(lexer), tok.lineNumber);
         } else {
             return parsePostfix(lexer, parsePrimary(lexer));
         }
@@ -331,8 +340,9 @@ public class Parser {
 
     private AST.Expr parseNew(Lexer lexer) {
         matchIdentifier(lexer, "new");
+        int lineNumber = lexer.lineNumber();
         AST.TypeExpr resultType = parseTypeExpr(lexer);
-        var newExpr = new AST.NewExpr(resultType);
+        var newExpr = new AST.NewExpr(resultType, lineNumber);
         AST.Expr lenExpr = null;
         AST.Expr initValueExpr = null;
         List<AST.Expr> initExpr = new ArrayList<>();
@@ -344,7 +354,7 @@ public class Parser {
                     nextToken(lexer);
                     matchPunctuation(lexer, "=");
                     AST.Expr value = parseBool(lexer);
-                    initExpr.add(new AST.InitFieldExpr(newExpr, fieldname, value));
+                    initExpr.add(new AST.InitFieldExpr(newExpr, fieldname, value, lineNumber));
                     if (fieldname.equals("len"))
                         lenExpr = value;
                     else if (fieldname.equals("value"))
@@ -353,7 +363,7 @@ public class Parser {
                 else {
                     var indexLit = Integer.valueOf(index++);
                     var indexExpr = new AST.LiteralExpr(Token.newNum(indexLit,indexLit.toString(),currentToken.lineNumber));
-                    initExpr.add(new AST.ArrayInitExpr(newExpr, indexExpr, parseBool(lexer)));
+                    initExpr.add(new AST.ArrayInitExpr(newExpr, indexExpr, parseBool(lexer), lineNumber));
                 }
                 if (isToken(currentToken, ","))
                     nextToken(lexer);
@@ -366,11 +376,12 @@ public class Parser {
             lenExpr = new AST.LiteralExpr(Token.newNum(sizeLit,sizeLit.toString(),currentToken.lineNumber));
         }
         if (lenExpr != null)
-            return new AST.InitExpr(new AST.NewExpr(newExpr.typeExpr, lenExpr, initValueExpr), initExpr);
-        return new AST.InitExpr(newExpr, initExpr);
+            return new AST.InitExpr(new AST.NewExpr(newExpr.typeExpr, lenExpr, initValueExpr, lineNumber), initExpr, lineNumber);
+        return new AST.InitExpr(newExpr, initExpr, lineNumber);
     }
 
     private AST.Expr parsePrimary(Lexer lexer) {
+        int lineNumber = lexer.lineNumber();
         switch (currentToken.kind) {
             case PUNCT -> {
                 /* Nested expression */
@@ -394,7 +405,7 @@ public class Parser {
                     return parseNew(lexer);
                 }
                 else {
-                    var x = new AST.NameExpr(currentToken.str);
+                    var x = new AST.NameExpr(currentToken.str, lineNumber);
                     nextToken(lexer);
                     return x;
                 }
@@ -416,12 +427,12 @@ public class Parser {
             switch (tok.str) {
                 case "[" -> {
                     AST.Expr expr = parseBool(lexer);
-                    prevExpr = new AST.ArrayLoadExpr(prevExpr, expr);
+                    prevExpr = new AST.ArrayLoadExpr(prevExpr, expr, tok.lineNumber);
                     matchPunctuation(lexer, "]");
                 }
                 case "." -> {
                     if (currentToken.kind == Token.Kind.IDENT) {
-                        prevExpr = new AST.GetFieldExpr(prevExpr, currentToken.str);
+                        prevExpr = new AST.GetFieldExpr(prevExpr, currentToken.str, currentToken.lineNumber);
                         nextToken(lexer);
                     }
                     else
@@ -436,7 +447,7 @@ public class Parser {
                         else break;
                     }
                     matchPunctuation(lexer, ")");
-                    prevExpr = new AST.CallExpr(prevExpr, args);
+                    prevExpr = new AST.CallExpr(prevExpr, args, currentToken.lineNumber);
                 }
                 default -> error(currentToken, "Syntax error: expected a postfix operator [ . or C");
             }
